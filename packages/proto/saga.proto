@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package saga;
+
+service SagaService {
+  rpc GetSagaStatus (SagaIdRequest) returns (SagaStatusResponse);
+}
+
+message SagaIdRequest {
+  string order_id = 1;
+}
+
+message SagaStatusResponse {
+  string status = 1;
+  string current_step = 2;
+  string updated_at = 3;
+}

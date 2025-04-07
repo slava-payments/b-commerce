@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "services/saga-orchestrator/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "services/saga-orchestrator/tsconfig.json"
+  },
+  "monorepo": true,
+  "root": "services/saga-orchestrator",
+  "projects": {
+    "inventory-service": {
+      "type": "application",
+      "root": "services/inventory-service",
+      "entryFile": "main",
+      "sourceRoot": "services/inventory-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "services/inventory-service/tsconfig.json"
+      }
+    },
+    "order-service": {
+      "type": "application",
+      "root": "services/order-service",
+      "entryFile": "main",
+      "sourceRoot": "services/order-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "services/order-service/tsconfig.json"
+      }
+    },
+    "payment-service": {
+      "type": "application",
+      "root": "services/payment-service",
+      "entryFile": "main",
+      "sourceRoot": "services/payment-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "services/payment-service/tsconfig.json"
+      }
+    },
+    "saga-orchestrator": {
+      "type": "application",
+      "root": "services/saga-orchestrator",
+      "entryFile": "main",
+      "sourceRoot": "services/saga-orchestrator/src",
+      "compilerOptions": {
+        "tsConfigPath": "services/saga-orchestrator/tsconfig.json"
+      }
+    },
+    "shipping-service": {
+      "type": "application",
+      "root": "services/shipping-service",
+      "entryFile": "main",
+      "sourceRoot": "services/shipping-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "services/shipping-service/tsconfig.json"
+      }
+    }
+  }
+}
