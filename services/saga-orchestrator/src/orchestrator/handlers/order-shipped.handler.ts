@@ -4,7 +4,7 @@ import { OnSagaEvent } from '../decorators/saga-event-handler.decorator';
 import { CompleteOrderCommand, OrderShippedEvent } from '@shared/messages';
 import { SagaService } from '../../saga/saga.service';
 import { EventEmitterService } from '../../events/event-emitter.service';
-import { SagaStatus } from '../../saga/saga.state';
+import { SagaStep } from '../../saga/saga.state';
 import { EVENT_TOPICS } from '@shared/messages/topics';
 
 @OnSagaEvent(EVENT_TOPICS.ORDER_SHIPPED)
@@ -18,7 +18,7 @@ export class OrderShippedHandler
   ) {}
 
   async handle(event: OrderShippedEvent): Promise<void> {
-    await this.saga.handleStep(event.orderId, SagaStatus.ORDER_SHIPPED);
+    await this.saga.completeStep(event.orderId, SagaStep.SHIPPING, event);
     this.events.emitCompleteOrder(new CompleteOrderCommand(event.orderId));
   }
 }

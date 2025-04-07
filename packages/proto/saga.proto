@@ -4,6 +4,7 @@ package saga;
 
 service SagaService {
   rpc GetSagaStatus (SagaIdRequest) returns (SagaStatusResponse);
+  rpc GetSagaHistory (SagaIdRequest) returns (SagaHistoryResponse);
 }
 
 message SagaIdRequest {
@@ -12,6 +13,19 @@ message SagaIdRequest {
 
 message SagaStatusResponse {
   string status = 1;
-  string current_step = 2;
+  string last_step = 2;
   string updated_at = 3;
+  string reason = 4;
+  string completed_at = 5;
+}
+
+message SagaHistoryResponse {
+  repeated SagaStepLog steps = 1;
+}
+
+message SagaStepLog {
+  string step = 1;
+  string status = 2;
+  string created_at = 3;
+  string reason = 4;
 }

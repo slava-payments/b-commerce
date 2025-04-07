@@ -18,8 +18,21 @@ export interface SagaIdRequest {
 
 export interface SagaStatusResponse {
   status: string;
-  currentStep: string;
+  lastStep: string;
   updatedAt: string;
+  reason: string;
+  completedAt: string;
+}
+
+export interface SagaHistoryResponse {
+  steps: SagaStepLog[];
+}
+
+export interface SagaStepLog {
+  step: string;
+  status: string;
+  createdAt: string;
+  reason: string;
 }
 
 export const SAGA_PACKAGE_NAME = "saga";
@@ -62,7 +75,7 @@ export const SagaIdRequest: MessageFns<SagaIdRequest> = {
 };
 
 function createBaseSagaStatusResponse(): SagaStatusResponse {
-  return { status: "", currentStep: "", updatedAt: "" };
+  return { status: "", lastStep: "", updatedAt: "", reason: "", completedAt: "" };
 }
 
 export const SagaStatusResponse: MessageFns<SagaStatusResponse> = {
@@ -70,11 +83,17 @@ export const SagaStatusResponse: MessageFns<SagaStatusResponse> = {
     if (message.status !== "") {
       writer.uint32(10).string(message.status);
     }
-    if (message.currentStep !== "") {
-      writer.uint32(18).string(message.currentStep);
+    if (message.lastStep !== "") {
+      writer.uint32(18).string(message.lastStep);
     }
     if (message.updatedAt !== "") {
       writer.uint32(26).string(message.updatedAt);
+    }
+    if (message.reason !== "") {
+      writer.uint32(34).string(message.reason);
+    }
+    if (message.completedAt !== "") {
+      writer.uint32(42).string(message.completedAt);
     }
     return writer;
   },
@@ -99,7 +118,7 @@ export const SagaStatusResponse: MessageFns<SagaStatusResponse> = {
             break;
           }
 
-          message.currentStep = reader.string();
+          message.lastStep = reader.string();
           continue;
         }
         case 3: {
@@ -108,6 +127,129 @@ export const SagaStatusResponse: MessageFns<SagaStatusResponse> = {
           }
 
           message.updatedAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.completedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+};
+
+function createBaseSagaHistoryResponse(): SagaHistoryResponse {
+  return { steps: [] };
+}
+
+export const SagaHistoryResponse: MessageFns<SagaHistoryResponse> = {
+  encode(message: SagaHistoryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.steps) {
+      SagaStepLog.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SagaHistoryResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSagaHistoryResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.steps.push(SagaStepLog.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+};
+
+function createBaseSagaStepLog(): SagaStepLog {
+  return { step: "", status: "", createdAt: "", reason: "" };
+}
+
+export const SagaStepLog: MessageFns<SagaStepLog> = {
+  encode(message: SagaStepLog, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.step !== "") {
+      writer.uint32(10).string(message.step);
+    }
+    if (message.status !== "") {
+      writer.uint32(18).string(message.status);
+    }
+    if (message.createdAt !== "") {
+      writer.uint32(26).string(message.createdAt);
+    }
+    if (message.reason !== "") {
+      writer.uint32(34).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SagaStepLog {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSagaStepLog();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.step = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.reason = reader.string();
           continue;
         }
       }
@@ -122,17 +264,23 @@ export const SagaStatusResponse: MessageFns<SagaStatusResponse> = {
 
 export interface SagaServiceClient {
   getSagaStatus(request: SagaIdRequest): Observable<SagaStatusResponse>;
+
+  getSagaHistory(request: SagaIdRequest): Observable<SagaHistoryResponse>;
 }
 
 export interface SagaServiceController {
   getSagaStatus(
     request: SagaIdRequest,
   ): Promise<SagaStatusResponse> | Observable<SagaStatusResponse> | SagaStatusResponse;
+
+  getSagaHistory(
+    request: SagaIdRequest,
+  ): Promise<SagaHistoryResponse> | Observable<SagaHistoryResponse> | SagaHistoryResponse;
 }
 
 export function SagaServiceControllerMethods() {
   return function (constructor: Function) {
-    const grpcMethods: string[] = ["getSagaStatus"];
+    const grpcMethods: string[] = ["getSagaStatus", "getSagaHistory"];
     for (const method of grpcMethods) {
       const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
       GrpcMethod("SagaService", method)(constructor.prototype[method], method, descriptor);
@@ -158,10 +306,20 @@ export const SagaServiceService = {
     responseSerialize: (value: SagaStatusResponse) => Buffer.from(SagaStatusResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer) => SagaStatusResponse.decode(value),
   },
+  getSagaHistory: {
+    path: "/saga.SagaService/GetSagaHistory",
+    requestStream: false,
+    responseStream: false,
+    requestSerialize: (value: SagaIdRequest) => Buffer.from(SagaIdRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer) => SagaIdRequest.decode(value),
+    responseSerialize: (value: SagaHistoryResponse) => Buffer.from(SagaHistoryResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer) => SagaHistoryResponse.decode(value),
+  },
 } as const;
 
 export interface SagaServiceServer extends UntypedServiceImplementation {
   getSagaStatus: handleUnaryCall<SagaIdRequest, SagaStatusResponse>;
+  getSagaHistory: handleUnaryCall<SagaIdRequest, SagaHistoryResponse>;
 }
 
 export interface MessageFns<T> {

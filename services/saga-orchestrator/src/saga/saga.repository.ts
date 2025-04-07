@@ -1,33 +1,73 @@
 import { Injectable } from '@nestjs/common';
-import { Saga } from './saga.entity';
+import { Saga } from './entities/saga.entity';
 import { DbService } from '../db/db.service';
-import { SagaStatus } from './saga.state';
+import { SagaStatus, SagaStep, SagaStepStatus } from './saga.state';
+import { sql } from 'kysely';
+import { BaseEvent } from '@shared/messages';
+import { JsonValue } from '../db/json-value';
+import { SagaStepLog } from './entities/saga-step-log.entity';
 
 @Injectable()
 export class SagaRepository {
   constructor(private readonly db: DbService) {}
 
-  async create(orderId: string): Promise<void> {
-    await this.db.db
+  async create(orderId: string): Promise<number | undefined> {
+    const result = await this.db.db
       .insertInto('saga')
       .values({
         orderId: orderId,
         status: SagaStatus.CREATED,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        lastStep: SagaStep.ORDER,
+        createdAt: sql`now()`,
+        updatedAt: sql`now()`,
+      })
+      .returning('id')
+      .executeTakeFirst();
+
+    return result?.id;
+  }
+
+  async log(
+    sagaId: number,
+    step: SagaStep,
+    status: SagaStepStatus,
+    payload?: JsonValue<BaseEvent>,
+    reason?: string,
+  ) {
+    await this.db.db
+      .insertInto('saga_step_log')
+      .values({
+        sagaId: sagaId,
+        step,
+        status,
+        reason: reason ?? null,
+        payload: payload ?? null,
+        createdAt: sql`now()`,
       })
       .execute();
   }
 
   async updateStatus(
-    orderId: string,
+    sagaId: number,
     status: SagaStatus,
-    currentStep: string | null,
-  ): Promise<void> {
+    lastStep?: SagaStep,
+    reason?: string,
+    metadata?: JsonValue<BaseEvent>,
+  ) {
     await this.db.db
       .updateTable('saga')
-      .set({ status, currentStep: currentStep, updatedAt: new Date() })
-      .where('orderId', '=', orderId)
+      .set({
+        status,
+        lastStep: lastStep ?? null,
+        updatedAt: sql`now()`,
+        reason: reason ?? null,
+        metadata: metadata ?? null,
+        completedAt:
+          status === SagaStatus.COMPLETED || status === SagaStatus.FAILED
+            ? sql`now()`
+            : undefined,
+      })
+      .where('id', '=', sagaId)
       .execute();
   }
 
@@ -37,5 +77,14 @@ export class SagaRepository {
       .selectAll()
       .where('orderId', '=', orderId)
       .executeTakeFirst();
+  }
+
+  async getStepLogsBySagaId(sagaId: number): Promise<SagaStepLog[]> {
+    return this.db.db
+      .selectFrom('saga_step_log')
+      .selectAll()
+      .where('sagaId', '=', sagaId)
+      .orderBy('createdAt', 'asc')
+      .execute();
   }
 }

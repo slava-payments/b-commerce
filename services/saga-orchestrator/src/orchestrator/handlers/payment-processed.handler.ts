@@ -4,8 +4,8 @@ import { SagaEventHandler } from '../interfaces/saga-event-handler.interface';
 import { OnSagaEvent } from '../decorators/saga-event-handler.decorator';
 import { SagaService } from '../../saga/saga.service';
 import { EventEmitterService } from '../../events/event-emitter.service';
-import { SagaStatus } from '../../saga/saga.state';
 import { EVENT_TOPICS } from '@shared/messages/topics';
+import { SagaStep } from '../../saga/saga.state';
 
 @OnSagaEvent(EVENT_TOPICS.PAYMENT_PROCESSED)
 @Injectable()
@@ -18,7 +18,8 @@ export class PaymentProcessedHandler
   ) {}
 
   async handle(event: PaymentProcessedEvent): Promise<void> {
-    await this.saga.handleStep(event.orderId, SagaStatus.PAYMENT_PROCESSED);
+    await this.saga.completeStep(event.orderId, SagaStep.PAYMENT, event);
+    await this.saga.markStepInProgress(event.orderId, SagaStep.STOCK);
     this.events.emitReserveStock(new ReserveStockCommand(event.orderId));
   }
 }

@@ -9,6 +9,7 @@ import {
 import { SagaService } from '../../saga/saga.service';
 import { EventEmitterService } from '../../events/event-emitter.service';
 import { EVENT_TOPICS } from '@shared/messages/topics';
+import { SagaStep } from '../../saga/saga.state';
 
 @OnSagaEvent(EVENT_TOPICS.STOCK_NOT_AVAILABLE)
 @Injectable()
@@ -21,8 +22,9 @@ export class StockNotAvailableHandler
   ) {}
 
   async handle(event: StockNotAvailableEvent): Promise<void> {
-    await this.saga.failSaga(event.orderId);
-    this.events.emitRefund(new RefundPaymentCommand(event.orderId));
-    this.events.emitCancelOrder(new CancelOrderCommand(event.orderId));
+    const { orderId, reason } = event;
+    await this.saga.failStep(orderId, SagaStep.STOCK, reason, event);
+    this.events.emitRefund(new RefundPaymentCommand(orderId));
+    this.events.emitCancelOrder(new CancelOrderCommand(orderId, reason));
   }
 }

@@ -7,11 +7,22 @@ export enum SagaStatus {
   FAILED = 'FAILED',
 }
 
-export const SagaTransitions: Record<SagaStatus, SagaStatus | null> = {
-  [SagaStatus.CREATED]: SagaStatus.PAYMENT_PROCESSED,
-  [SagaStatus.PAYMENT_PROCESSED]: SagaStatus.STOCK_RESERVED,
-  [SagaStatus.STOCK_RESERVED]: SagaStatus.ORDER_SHIPPED,
-  [SagaStatus.ORDER_SHIPPED]: SagaStatus.COMPLETED,
-  [SagaStatus.COMPLETED]: null,
-  [SagaStatus.FAILED]: null,
+export enum SagaStep {
+  ORDER = 'ORDER',
+  PAYMENT = 'PAYMENT',
+  STOCK = 'STOCK',
+  SHIPPING = 'SHIPPING',
+}
+
+export enum SagaStepStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export const stepToStatusMap: Record<SagaStep, SagaStatus> = {
+  [SagaStep.PAYMENT]: SagaStatus.PAYMENT_PROCESSED,
+  [SagaStep.STOCK]: SagaStatus.STOCK_RESERVED,
+  [SagaStep.SHIPPING]: SagaStatus.ORDER_SHIPPED,
+  [SagaStep.ORDER]: SagaStatus.CREATED,
 };
